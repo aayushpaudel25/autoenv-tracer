@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+autoenv/__init__.py
+autoenv/cli.py
+autoenv/sanitizer.py
+autoenv/tracer.py
+autoenv/ui.py
+autoenv_cli.egg-info/PKG-INFO
+autoenv_cli.egg-info/SOURCES.txt
+autoenv_cli.egg-info/dependency_links.txt
+autoenv_cli.egg-info/entry_points.txt
+autoenv_cli.egg-info/requires.txt
+autoenv_cli.egg-info/top_level.txt

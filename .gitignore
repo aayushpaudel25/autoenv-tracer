@@ -4,3 +4,5 @@ __pycache__/
 Dockerfile.autoenv
 generated_requirements.txt
 test_data.txt
+Dockerfile.autoenv
+generated_requirements.txt

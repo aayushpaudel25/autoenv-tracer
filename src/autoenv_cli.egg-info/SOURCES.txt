@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/autoenv_cli.egg-info/PKG-INFO
+src/autoenv_cli.egg-info/SOURCES.txt
+src/autoenv_cli.egg-info/dependency_links.txt
+src/autoenv_cli.egg-info/entry_points.txt
+src/autoenv_cli.egg-info/requires.txt
+src/autoenv_cli.egg-info/top_level.txt

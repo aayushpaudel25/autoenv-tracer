@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoenv-cli"
+version = "0.1.0"
+description = "Automated runtime environment and Dockerfile generator"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "click>=8.0",
+    "rich>=13.0",
+]
+
+[project.scripts]
+autoenv = "autoenv.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["autoenv*"]
