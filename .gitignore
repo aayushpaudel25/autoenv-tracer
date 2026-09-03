@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .env
+Dockerfile.autoenv
+generated_requirements.txt
+test_data.txt
