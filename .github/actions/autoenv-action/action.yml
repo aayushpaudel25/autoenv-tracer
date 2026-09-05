@@ -1,12 +1,9 @@
-name: 'AutoEnv Compliance Check'
-description: 'Traces runtime dependencies, verifies security, and checks for environment drift in pull requests.'
+name: 'AutoEnv Compliance Gate'
+description: 'Traces runtime dependencies, verifies security policies, scans CVEs, comments on PRs, and builds containers.'
 inputs:
   run-script:
-    description: 'Python script to execute and trace'
-    required: false
-  module:
-    description: 'Python module to execute and trace'
-    required: false
+    description: 'Path to target Python script to execute'
+    required: true
 runs:
   using: 'composite'
   steps:
@@ -15,21 +12,32 @@ runs:
       with:
         python-version: '3.11'
 
-    - name: Install Dependencies & AutoEnv
+    - name: Install AutoEnv & Dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip
-        pip install autoenv-cli
-      shell: bash
+        pip install -e .
 
-    - name: Run AutoEnv Headless Audit
+    - name: Run Headless Capture & Generate SBOM
+      shell: bash
+      run: autoenv capture --run ${{ inputs.run-script }} --json > autoenv_report.json
+
+    - name: Evaluate Compliance Policy
+      shell: bash
+      run: autoenv check-policy --report autoenv_report.json --policy autoenv_policy.json
+
+    - name: Scan Dependencies for CVEs
+      shell: bash
+      run: autoenv scan-cves --sbom sbom.json
+
+    - name: Verify Container Build
+      shell: bash
       run: |
-        if [ "${{ inputs.run-script }}" != "" ]; then
-          autoenv capture --run "${{ inputs.run-script }}" --json > autoenv_report.json
-        else
-          autoenv capture --module "${{ inputs.module }}" --json > autoenv_report.json
-        fi
-      shell: bash
+        echo "[*] Testing container build with Dockerfile.autoenv..."
+        docker build -f Dockerfile.autoenv -t autoenv-app:test .
 
-    - name: Enforce Compliance Policy
-      run: autoenv check-policy
+    - name: Post Pull Request Review Comment
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: autoenv comment-pr

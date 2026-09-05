@@ -12,6 +12,8 @@ from autoenv.system_deps import resolve_system_dependencies
 from autoenv.core import run_headless_capture
 from autoenv.policy import evaluate_compliance
 from autoenv.sbom import generate_cyclonedx_sbom
+from autoenv.scanner import scan_dependencies_for_cves
+from autoenv.notifier import post_pr_comment
 
 console = Console()
 
@@ -36,7 +38,6 @@ def capture(run, module, output_json, args):
     target = run if run else module
     render_banner()
     
-    # Only run file-based security scan if a specific file is passed
     if run:
         with console.status("[bold yellow]Running security pre-flight check..."):
             sleep(0.6)
@@ -47,7 +48,6 @@ def capture(run, module, output_json, args):
     
     console.print(f"\n[bold blue][*] Initializing AutoEnv runtime recorder for:[/bold blue] {target} {args}")
     
-    # Temporarily inject arguments for the target framework to consume
     sys.argv = [target] + list(args)
     sys.path.insert(0, os.getcwd())
 
@@ -59,7 +59,6 @@ def capture(run, module, output_json, args):
         elif module:
             runpy.run_module(module, run_name="__main__", alter_sys=True)
     except SystemExit as e:
-        # Expected behavior when web servers shut down cleanly
         if e.code != 0:
             console.print(f"[bold red][!] Execution terminated with code {e.code}[/bold red]")
     except Exception as e:
@@ -72,7 +71,6 @@ def capture(run, module, output_json, args):
     
     console.print("\n", create_dependency_tree(deps), "\n")
     
-    # Generate Artifacts
     req_filename = "generated_requirements.txt"
     with open(req_filename, "w") as f:
         for dep in deps:
@@ -80,8 +78,6 @@ def capture(run, module, output_json, args):
             
     generate_env_example()
     sbom_path = generate_cyclonedx_sbom(deps)
-    
-    # Resolve Linux system dependencies based on Python packages
     sys_deps = resolve_system_dependencies(deps)
     
     apt_get_instruction = ""
@@ -89,13 +85,11 @@ def capture(run, module, output_json, args):
         sys_deps_str = " ".join(sys_deps)
         apt_get_instruction = f"RUN apt-get update && apt-get install -y {sys_deps_str} && rm -rf /var/lib/apt/lists/*\n"
     
-    # Build a smarter Dockerfile depending on how it was run
     cmd_instruction = f'CMD ["python", "{run}"]' if run else f'CMD ["python", "-m", "{module}", "{" ".join(args)}"]'
     
     dockerfile_content = f"""FROM python:3.11-slim
 WORKDIR /app
 
-# Install System-Level Dependencies
 {apt_get_instruction}COPY {req_filename} .
 RUN pip install --no-cache-dir -r {req_filename}
 
@@ -140,6 +134,31 @@ def sbom(output):
     deps = get_dependencies()
     path = generate_cyclonedx_sbom(deps, output_path=output)
     click.secho(f"CycloneDX SBOM generated successfully at: {path}", fg="green")
+
+@cli.command()
+@click.option('--sbom', default='sbom.json', help='Path to SBOM file')
+def scan_cves(sbom):
+    """Scan SBOM components against the OSV database for known CVEs."""
+    click.echo("[*] Scanning dependencies for known vulnerabilities...")
+    result = scan_dependencies_for_cves(sbom_path=sbom)
+    
+    if result.get("error"):
+        click.secho(f"Warning: Could not complete CVE scan: {result['error']}", fg="yellow")
+        sys.exit(0)
+        
+    if result["vulnerabilities_found"]:
+        click.secho("[!] SECURITY ALERT: Vulnerabilities detected!", fg="red")
+        for vuln in result["vulnerabilities"]:
+            click.secho(f"  - [{vuln['id']}] {vuln['package']}: {vuln['summary']}", fg="yellow")
+        sys.exit(1)
+    else:
+        click.secho("[✔] No known vulnerabilities found in SBOM components.", fg="green")
+        sys.exit(0)
+
+@cli.command()
+def comment_pr():
+    """Post audit summary as a Markdown comment on the active GitHub Pull Request."""
+    post_pr_comment()
 
 if __name__ == "__main__":
     cli()
