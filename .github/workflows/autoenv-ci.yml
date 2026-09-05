@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run AutoEnv CI Gatekeeper
-        uses: ./.github/actions/autoenv-action
-        with:
-          run-script: "test_script.py" # Point this to your actual app entrypoint script
+      uses: ./.github/actions/autoenv-action
+      with:
+        run-script: 'test_script.py'
 
       - name: Upload SBOM Artifact
         uses: actions/upload-artifact@v4
