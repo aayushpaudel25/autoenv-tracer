@@ -18,9 +18,9 @@ runs:
         python -m pip install --upgrade pip
         pip install -e .
 
-    - name: Run Headless Capture & Generate SBOM
+    - name: Run Capture & Generate Artifacts
       shell: bash
-      run: python -m autoenv.cli capture --run ${{ inputs.run-script }} --json > autoenv_report.json
+      run: python -m autoenv.cli capture --run ${{ inputs.run-script }}
 
     - name: Evaluate Compliance Policy
       shell: bash
