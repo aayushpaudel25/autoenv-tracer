@@ -1,52 +1,46 @@
 import sys
+import site
 
-seen_dependencies = set()
-seen_files = set()
+# Get the paths where pip installs third-party packages
+SITE_PACKAGES = site.getsitepackages()
+if hasattr(site, 'getusersitepackages'):
+    SITE_PACKAGES.append(site.getusersitepackages())
 
-# 1. Blacklist: Modules we trace, but CANNOT be installed via pip
-PIP_BLACKLIST = {
-    "backports",
-    "pkg_resources" # Another common internal un-installable module
-}
-
-# 2. Translation Map: Maps "import_name" -> "pip_install_name"
-PIP_MAPPING = {
-    "socks": "PySocks",
-    "PIL": "Pillow",
-    "yaml": "PyYAML",
-    "dotenv": "python-dotenv",
-    "bs4": "beautifulsoup4"
-}
+_captured_imports = set()
 
 def audit_hook(event, args):
-    if event in ("open", "io.open"):
-        file_path = str(args[0])
-        ignore_paths = ('/System', '/usr/lib', '/Library', '<')
-        
-        if not file_path.startswith(ignore_paths) and file_path not in seen_files:
-            seen_files.add(file_path)
-            
-    elif event == "import":
-        module_name = args[0]
-        base_module = module_name.split('.')[0] 
-        
-        if not module_name.startswith("_") and base_module not in sys.stdlib_module_names:
-            if base_module not in seen_dependencies:
-                seen_dependencies.add(base_module)
+    """Listens to raw import events at the C-level."""
+    if event == "import":
+        _captured_imports.add(args[0])
 
 def start_tracing():
+    """Initializes the runtime wiretap."""
     sys.addaudithook(audit_hook)
 
 def get_dependencies():
-    """Cleans, translates, and returns the final list of pip packages"""
-    clean_deps = set()
-    for dep in seen_dependencies:
-        # Skip un-installable blacklisted modules
-        if dep in PIP_BLACKLIST:
-            continue
-        
-        # Translate import name to pip name, or just keep the original
-        pip_name = PIP_MAPPING.get(dep, dep)
-        clean_deps.add(pip_name)
-        
-    return list(clean_deps)
+    """Filters captured modules to return ONLY third-party pip packages."""
+    third_party_deps = set()
+    
+    # Check both dynamically captured imports and natively loaded modules
+    all_modules = set(sys.modules.keys()).union(_captured_imports)
+    
+    for mod_name in all_modules:
+        try:
+            mod = sys.modules.get(mod_name)
+            if not mod or not hasattr(mod, '__file__') or not mod.__file__:
+                continue
+            
+            # If the file path lives inside a pip site-packages folder, it's a dependency
+            is_third_party = any(mod.__file__.startswith(sp) for sp in SITE_PACKAGES)
+            
+            if is_third_party:
+                # Extract the base package name (e.g., 'fastapi.routing' -> 'fastapi')
+                base_pkg = mod_name.split('.')[0]
+                
+                # Exclude internal pip/setuptools noise and local editable hacks
+                if base_pkg not in ['pip', 'setuptools', 'wheel', 'autoenv', 'rich', 'click', '_distutils_hack'] and not base_pkg.startswith('__editable__'):
+                    third_party_deps.add(base_pkg)
+        except Exception:
+            pass
+            
+    return sorted(list(third_party_deps))

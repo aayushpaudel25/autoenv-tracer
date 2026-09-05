@@ -1,0 +1,35 @@
+name: 'AutoEnv Compliance Check'
+description: 'Traces runtime dependencies, verifies security, and checks for environment drift in pull requests.'
+inputs:
+  run-script:
+    description: 'Python script to execute and trace'
+    required: false
+  module:
+    description: 'Python module to execute and trace'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies & AutoEnv
+      run: |
+        python -m pip install --upgrade pip
+        pip install autoenv-cli
+      shell: bash
+
+    - name: Run AutoEnv Headless Audit
+      run: |
+        if [ "${{ inputs.run-script }}" != "" ]; then
+          autoenv capture --run "${{ inputs.run-script }}" --json > autoenv_report.json
+        else
+          autoenv capture --module "${{ inputs.module }}" --json > autoenv_report.json
+        fi
+      shell: bash
+
+    - name: Enforce Compliance Policy
+      run: autoenv check-policy
+      shell: bash

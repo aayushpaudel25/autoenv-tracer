@@ -1,0 +1,6 @@
+{
+  "allowed_packages": [],
+  "blocked_packages": ["telnetlib", "pickle", "xmlrpc"],
+  "blocked_system_dependencies": ["netcat", "telnet"],
+  "require_security_clean": true
+}

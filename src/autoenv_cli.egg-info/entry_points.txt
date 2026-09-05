@@ -1,2 +1,2 @@
 [console_scripts]
-autoenv = cli:cli
+autoenv = autoenv.cli:cli

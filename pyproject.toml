@@ -1,20 +1,27 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoenv-cli"
-version = "0.1.0"
-description = "Automated runtime environment and Dockerfile generator"
+version = "1.0.0"
+description = "Eliminate environment drift with runtime dependency tracing and automated container compilation."
 readme = "README.md"
+authors = [
+    { name = "Aayush Poudel" }
+]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 requires-python = ">=3.8"
 dependencies = [
-    "click>=8.0",
-    "rich>=13.0",
+    "click>=8.0.0",
+    "rich>=10.0.0"
 ]
 
 [project.scripts]
 autoenv = "autoenv.cli:cli"
 
-[tool.setuptools.packages.find]
-include = ["autoenv*"]

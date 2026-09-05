@@ -1,0 +1,25 @@
+name: AutoEnv Enterprise Compliance
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  compliance-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run AutoEnv CI Gatekeeper
+        uses: ./.github/actions/autoenv-action
+        with:
+          run-script: "test_script.py" # Point this to your actual app entrypoint script
+
+      - name: Upload SBOM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoenv-sbom
+          path: sbom.json
