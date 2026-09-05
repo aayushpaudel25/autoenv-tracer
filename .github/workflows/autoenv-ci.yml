@@ -1,10 +1,10 @@
-name: AutoEnv Enterprise Compliance
+name: 'AutoEnv Enterprise Compliance'
 
 on:
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   compliance-audit:
@@ -16,10 +16,4 @@ jobs:
       - name: Run AutoEnv CI Gatekeeper
         uses: ./.github/actions/autoenv-action
         with:
-          run-script: "test_script.py" # Point this to your actual app entrypoint script
-
-      - name: Upload SBOM Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: autoenv-sbom
-          path: sbom.json
+          run-script: 'test_script.py'

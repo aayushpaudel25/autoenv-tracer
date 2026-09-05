@@ -2,6 +2,7 @@ import click
 import sys
 import os
 import runpy
+import json
 from time import sleep
 from rich.console import Console
 from rich.panel import Panel
@@ -29,11 +30,19 @@ def cli():
 @click.argument('args', nargs=-1)
 def capture(run, module, output_json, args):
     """Trace execution, perform security checks, and compile artifacts."""
+    result = run_headless_capture(run=run, module=module, args=args)
+    
+    report_filename = "autoenv_report.json"
+    with open(report_filename, "w") as f:
+        json.dump(result, f, indent=2)
+
     if output_json:
-        import json
-        result = run_headless_capture(run=run, module=module, args=args)
         click.echo(json.dumps(result, indent=2))
         sys.exit(0 if result["success"] else 1)
+
+    if not result["success"]:
+        click.echo(f"[!] Execution failed: {result.get('error', 'Unknown error')}", err=True)
+        sys.exit(1)
 
     target = run if run else module
     render_banner()
