@@ -20,15 +20,15 @@ runs:
 
     - name: Run Headless Capture & Generate SBOM
       shell: bash
-      run: autoenv capture --run ${{ inputs.run-script }} --json > autoenv_report.json
+      run: python -m autoenv.cli capture --run ${{ inputs.run-script }} --json > autoenv_report.json
 
     - name: Evaluate Compliance Policy
       shell: bash
-      run: autoenv check-policy --report autoenv_report.json --policy autoenv_policy.json
+      run: python -m autoenv.cli check-policy --report autoenv_report.json --policy autoenv_policy.json
 
     - name: Scan Dependencies for CVEs
       shell: bash
-      run: autoenv scan-cves --sbom sbom.json
+      run: python -m autoenv.cli scan-cves --sbom sbom.json
 
     - name: Verify Container Build
       shell: bash
@@ -40,4 +40,4 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      run: autoenv comment-pr
+      run: python -m autoenv.cli comment-pr
